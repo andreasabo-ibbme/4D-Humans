@@ -10,11 +10,13 @@ from enum import Enum
 import pandas as pd
 import glob
 
+from split import splitall
 from track_pipeline import main as track_main
 
 
 INPUT_FOLDER = r"/home/saboa/mnt/n_drive/AMBIENT/POCO_samples/input"
 OUTPUT_FOLDER = r"/home/saboa/mnt/n_drive/AMBIENT/POCO_samples/output_HMR2"
+OUTPUT_FOLDER_HMR2 = r"/home/saboa/mnt/n_drive/AMBIENT/HMR2"
 
 class VID_TYPE(Enum):
     ALL=1
@@ -41,16 +43,32 @@ def list_TRI_PD_vids():
     potential_files = [os.path.join(TRI_INPUT_ROOT, amb, file, "Video.avi") for amb, file in zip(df["AMBID"].to_list(), df["file"].to_list())]
 
 
-    valid_vids = []
+    valid_vids = {}
     invalid_vids = []
     for file in potential_files:
         if os.path.exists(file):
-            valid_vids.append(file)
+            output_base = file.replace(TRI_INPUT_ROOT, OUTPUT_FOLDER_HMR2)
+            parts = splitall(output_base)
+            output_file = os.path.join(*parts[:-3], "TRI_UPDRS",  parts[-2], "HMR2_output.mp4")
+            valid_vids.update({file: output_file})
+            # valid_vids.append(file)
         else:
             invalid_vids.append(file)
     
     return valid_vids
     
+
+def format_MDC_output(input_vids, input_folder, output_intermediate_folder):
+    output_dict ={}
+
+    for vid in input_vids:
+        output_base = vid.replace(input_folder, OUTPUT_FOLDER_HMR2)
+        parts = splitall(output_base)
+        output_file = os.path.join(*parts[:-1], output_intermediate_folder,  os.path.splitext(parts[-1])[0], "HMR2_output.mp4")
+        output_dict.update({vid: output_file})
+
+    return output_dict
+
 
 def list_MDC_vids(vid_type=VID_TYPE.ALL):
     MDC_SPLIT_VID_DIR = r"/home/saboa/mnt/n_drive/AMBIENT/Andrea_S/Fasano_dataset_2021/objective_2/cropped_and_split_vids"
@@ -60,15 +78,24 @@ def list_MDC_vids(vid_type=VID_TYPE.ALL):
     all_full_vids = glob.glob(os.path.join(MDC_FULL_VID_DIR, "**", "*.avi"), recursive=True)
     ic(len(all_split_vids), len(all_full_vids))
 
-    if vid_type == VID_TYPE.ALL:
-        all_split_vids.extend(all_full_vids)
-        return all_split_vids
-    elif vid_type == VID_TYPE.SPLIT:
-        return all_split_vids
-    elif vid_type == VID_TYPE.FULL:
-        return all_full_vids
+    all_vids_dict = {}
+
+    # Format the output files
+    if vid_type in [VID_TYPE.SPLIT, VID_TYPE.ALL]:
+        all_split_vids_dict = format_MDC_output(all_split_vids, MDC_SPLIT_VID_DIR, "MDC_SPLIT")
+    if vid_type in [VID_TYPE.FULL, VID_TYPE.ALL]:
+        all_full_vids_dict = format_MDC_output(all_full_vids, MDC_FULL_VID_DIR, "MDC_FULL")
+
+    # Forcing split vids first in python version which preserve key order
+    if vid_type in [VID_TYPE.ALL]:
+        all_split_vids_dict.update(all_full_vids_dict)
     
-    raise KeyError("invalid vid_type")
+    # Returning the requested dict
+    if vid_type in [VID_TYPE.SPLIT, VID_TYPE.ALL]:
+        return all_split_vids_dict
+    else:
+        return all_full_vids_dict
+
 
 
 def process_all_vids(input_vids, cfg):
@@ -88,17 +115,33 @@ def process_all_vids(input_vids, cfg):
         cfg['video']['output_dir'] = out_folder
         track_main(cfg)
 
+
+def process_all_vids_dict(input_vids, cfg):
+    i = 0
+    for vid, out_new_vid in input_vids.items():
+        print(i, len(input_vids))
+
+        if os.path.exists(out_new_vid):
+            continue
+
+        cfg['video']['source'] = vid
+        ic(os.path.split(out_new_vid)[0])
+        cfg['video']['output_dir'] = os.path.split(out_new_vid)[0]
+        track_main(cfg)
+
+
 @hydra.main(version_base="1.2", config_name="config")
 def main(cfg: DictConfig) -> Optional[float]:
-    
-    # input_vids = list_vids(INPUT_FOLDER)
-    
+        
     input_vids = list_TRI_PD_vids()
-    input_vids.extend(list_MDC_vids())
-    ic(len(input_vids))
-    ic(input_vids)
-    input_vids = []
-    process_all_vids(input_vids, cfg)
+    mdc_vids = list_MDC_vids()
+
+    input_vids.update(mdc_vids)
+
+    # for key, val in input_vids.items():
+    #     ic(key, val)
+
+    process_all_vids_dict(input_vids, cfg)
 
 
 
