@@ -49,7 +49,8 @@ def list_TRI_PD_vids():
         if os.path.exists(file):
             output_base = file.replace(TRI_INPUT_ROOT, OUTPUT_FOLDER_HMR2)
             parts = splitall(output_base)
-            output_file = os.path.join(*parts[:-3], "TRI_UPDRS",  parts[-2], "HMR2_output.mp4")
+            name = os.path.splitext(parts[-1])[0]
+            output_file = os.path.join(*parts[:-3], "TRI_UPDRS",  parts[-2], f"PHALP_{name}.mp4")
             valid_vids.update({file: output_file})
             # valid_vids.append(file)
         else:
@@ -64,7 +65,8 @@ def format_MDC_output(input_vids, input_folder, output_intermediate_folder):
     for vid in input_vids:
         output_base = vid.replace(input_folder, OUTPUT_FOLDER_HMR2)
         parts = splitall(output_base)
-        output_file = os.path.join(*parts[:-1], output_intermediate_folder,  os.path.splitext(parts[-1])[0], "HMR2_output.mp4")
+        name = os.path.splitext(parts[-1])[0]
+        output_file = os.path.join(*parts[:-1], output_intermediate_folder,  os.path.splitext(parts[-1])[0], f"PHALP_{name}.mp4")
         output_dict.update({vid: output_file})
 
     return output_dict
@@ -77,8 +79,6 @@ def list_MDC_vids(vid_type=VID_TYPE.ALL):
     all_split_vids = glob.glob(os.path.join(MDC_SPLIT_VID_DIR, "*.avi"))
     all_full_vids = glob.glob(os.path.join(MDC_FULL_VID_DIR, "**", "*.avi"), recursive=True)
     ic(len(all_split_vids), len(all_full_vids))
-
-    all_vids_dict = {}
 
     # Format the output files
     if vid_type in [VID_TYPE.SPLIT, VID_TYPE.ALL]:
@@ -98,35 +98,37 @@ def list_MDC_vids(vid_type=VID_TYPE.ALL):
 
 
 
-def process_all_vids(input_vids, cfg):
-    i = 0
-    for vid in input_vids:
+# def process_all_vids(input_vids, cfg):
+#     i = 0
+#     for vid in input_vids:
 
-        print(i, len(input_vids))
-        out_vid = vid.replace(INPUT_FOLDER, OUTPUT_FOLDER)
-        out_folder = os.path.split(out_vid)[0]
-        name = os.path.splitext(os.path.split(out_vid)[-1])[0]
-        out_new_vid = os.path.join(out_folder, f"HMR2_{name}.mp4")
+#         print(i, len(input_vids))
+#         out_vid = vid.replace(INPUT_FOLDER, OUTPUT_FOLDER)
+#         out_folder = os.path.split(out_vid)[0]
+#         name = os.path.splitext(os.path.split(out_vid)[-1])[0]
+#         out_new_vid = os.path.join(out_folder, f"PHALP_{name}.mp4")
 
-        if os.path.exists(out_new_vid):
-            continue
+#         if os.path.exists(out_new_vid):
+#             continue
 
-        cfg['video']['source'] = vid
-        cfg['video']['output_dir'] = out_folder
-        track_main(cfg)
+#         cfg['video']['source'] = vid
+#         cfg['video']['output_dir'] = out_folder
+#         track_main(cfg)
 
 
 def process_all_vids_dict(input_vids, cfg):
     i = 0
     for vid, out_new_vid in input_vids.items():
-        print(i, len(input_vids))
+        i = i + 1
+        print(i, vid)
 
         if os.path.exists(out_new_vid):
+            ic("skipping", out_new_vid)
             continue
 
         cfg['video']['source'] = vid
-        ic(os.path.split(out_new_vid)[0])
         cfg['video']['output_dir'] = os.path.split(out_new_vid)[0]
+        ic("writing to: ", os.path.split(out_new_vid)[0])
         track_main(cfg)
 
 
@@ -138,8 +140,12 @@ def main(cfg: DictConfig) -> Optional[float]:
 
     input_vids.update(mdc_vids)
 
-    # for key, val in input_vids.items():
-    #     ic(key, val)
+    i = 0
+    for key, val in input_vids.items():
+        i = i + 1
+        ic(key, val)
+        if i > 6 :
+            break
 
     process_all_vids_dict(input_vids, cfg)
 
