@@ -19,9 +19,9 @@ conda activate 4D-humans
 
 If conda is too slow, you can use pip:
 ```bash
-conda create --name 4D-humans python=3.10
+conda create --name 4D-humans python=3.10 
 conda activate 4D-humans
-pip install torch
+pip install torch wheel
 pip install -e .[all]
 ```
 
