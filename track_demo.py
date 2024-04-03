@@ -1,4 +1,3 @@
-from icecream import ic
 import glob, os
 from typing import Optional, Tuple
 from omegaconf import DictConfig
@@ -6,11 +5,22 @@ from omegaconf import DictConfig
 import hydra
 from hydra.core.config_store import ConfigStore
 
+from icecream import ic
+from enum import Enum
+import pandas as pd
+import glob
+
 from track_pipeline import main as track_main
 
 
 INPUT_FOLDER = r"/home/saboa/mnt/n_drive/AMBIENT/POCO_samples/input"
 OUTPUT_FOLDER = r"/home/saboa/mnt/n_drive/AMBIENT/POCO_samples/output_HMR2"
+
+class VID_TYPE(Enum):
+    ALL=1
+    SPLIT=2
+    FULL=3
+
 
 # args_base = '--mode video --cfg configs/demo_poco_cliff.yaml --ckpt data/poco_cliff.pt '
 def list_vids(root_folder, exts=['.avi', 'mp4']):
@@ -20,20 +30,56 @@ def list_vids(root_folder, exts=['.avi', 'mp4']):
 
     return all_vids
 
-# def process_vid(args, in_vid, out_vid):
-#     pa
+
+def list_TRI_PD_vids():
+    TRI_INPUT_ROOT = r"/home/saboa/mnt/n_drive/AMBIENT/Data_Storage/TRI/videos"
+    PD_scores_file = r"/home/saboa/mnt/n_drive/AMBIENT/Andrea_S/OBJ1- TRI Parkinsonism Data/ALL_PD_SCORES_AND_CLINICAL_DATA.xlsx"
+    df = pd.read_excel(PD_scores_file)
+    df.rename(columns={"AMBIENT ID": "AMBID", "File Number/Title ": "file"}, inplace=True)
+
+
+    potential_files = [os.path.join(TRI_INPUT_ROOT, amb, file, "Video.avi") for amb, file in zip(df["AMBID"].to_list(), df["file"].to_list())]
+
+
+    valid_vids = []
+    invalid_vids = []
+    for file in potential_files:
+        if os.path.exists(file):
+            valid_vids.append(file)
+        else:
+            invalid_vids.append(file)
+    
+    return valid_vids
+    
+
+def list_MDC_vids(vid_type=VID_TYPE.ALL):
+    MDC_SPLIT_VID_DIR = r"/home/saboa/mnt/n_drive/AMBIENT/Andrea_S/Fasano_dataset_2021/objective_2/cropped_and_split_vids"
+    MDC_FULL_VID_DIR = r"/home/saboa/mnt/n_drive/AMBIENT/Data_Storage/MDC/videos"
+    
+    all_split_vids = glob.glob(os.path.join(MDC_SPLIT_VID_DIR, "*.avi"))
+    all_full_vids = glob.glob(os.path.join(MDC_FULL_VID_DIR, "**", "*.avi"), recursive=True)
+    ic(len(all_split_vids), len(all_full_vids))
+
+    if vid_type == VID_TYPE.ALL:
+        all_split_vids.extend(all_full_vids)
+        return all_split_vids
+    elif vid_type == VID_TYPE.SPLIT:
+        return all_split_vids
+    elif vid_type == VID_TYPE.FULL:
+        return all_full_vids
+    
+    raise KeyError("invalid vid_type")
+
 
 def process_all_vids(input_vids, cfg):
     i = 0
     for vid in input_vids:
-        # i = i + 1
-        # if i <= 5: 
-        #     continue
+
         print(i, len(input_vids))
         out_vid = vid.replace(INPUT_FOLDER, OUTPUT_FOLDER)
         out_folder = os.path.split(out_vid)[0]
         name = os.path.splitext(os.path.split(out_vid)[-1])[0]
-        out_new_vid = os.path.join(out_folder, f"PHALP_{name}.mp4")
+        out_new_vid = os.path.join(out_folder, f"HMR2_{name}.mp4")
 
         if os.path.exists(out_new_vid):
             continue
@@ -45,8 +91,15 @@ def process_all_vids(input_vids, cfg):
 @hydra.main(version_base="1.2", config_name="config")
 def main(cfg: DictConfig) -> Optional[float]:
     
-    input_vids = list_vids(INPUT_FOLDER)
+    # input_vids = list_vids(INPUT_FOLDER)
+    
+    input_vids = list_TRI_PD_vids()
+    input_vids.extend(list_MDC_vids())
+    ic(len(input_vids))
+    ic(input_vids)
+    input_vids = []
     process_all_vids(input_vids, cfg)
+
 
 
 if __name__ == "__main__":
