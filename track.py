@@ -176,7 +176,7 @@ cs.store(name="config", node=Human4DConfig)
 @hydra.main(version_base="1.2", config_name="config")
 def main(cfg: DictConfig) -> Optional[float]:
     """Main function for running the PHALP tracker."""
-
+    
     phalp_tracker = HMR2_4dhuman(cfg)
 
     phalp_tracker.track()

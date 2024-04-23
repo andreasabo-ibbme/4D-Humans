@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Tuple
 
-import os
+import os, gc
 import hydra
 import torch
 import numpy as np
@@ -176,11 +176,17 @@ cs.store(name="config", node=Human4DConfig)
 # @hydra.main(version_base="1.2", config_name="config")
 def main(cfg: DictConfig) -> Optional[float]:
     """Main function for running the PHALP tracker."""
-    print(cfg)
+    # cfg['end_frame'] = -1
+    # print(cfg.keys())
+    # print(cfg)
+    # print(cfg['video']['end_frame'])
+    # quit()
+    cfg['video']['end_frame'] = -1
     phalp_tracker = HMR2_4dhuman(cfg)
 
     phalp_tracker.track()
     del phalp_tracker
+    gc.collect()
 
 if __name__ == "__main__":
     os.environ["HYDRA_FULL_ERROR"] = 1

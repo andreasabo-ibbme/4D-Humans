@@ -14,8 +14,11 @@ from split import splitall
 from track_pipeline import main as track_main
 
 
-INPUT_FOLDER = r"/home/saboa/mnt/n_drive/AMBIENT/POCO_samples/input"
-OUTPUT_FOLDER = r"/home/saboa/mnt/n_drive/AMBIENT/POCO_samples/output_HMR2"
+# INPUT_FOLDER = r"/home/saboa/mnt/n_drive/AMBIENT/POCO_samples/input"
+# INPUT_FOLDER = r"/home/saboa/mnt/n_drive/AMBIENT/Andrea_S/ROM_Apr22_2024"
+# OUTPUT_FOLDER = r"/home/saboa/mnt/n_drive/AMBIENT/POCO_samples/output_HMR2"
+# OUTPUT_FOLDER = r"/home/saboa/mnt/n_drive/AMBIENT/HMR2"
+OUTPUT_FOLDER_HMR2 = r"/home/saboa/mnt/n_drive/AMBIENT/Andrea_S/ROM_Apr22_2024_posetracked_v3"
 OUTPUT_FOLDER_HMR2 = r"/home/saboa/mnt/n_drive/AMBIENT/HMR2"
 
 class VID_TYPE(Enum):
@@ -33,6 +36,17 @@ def list_vids(root_folder, exts=['.avi', 'mp4']):
     return all_vids
 
 
+
+def list_custom_vids(input_folder, file_types=['mp4', 'avi']):
+    all_files = []
+    for ext in file_types:
+        all_files.extend(glob.glob(os.path.join(input_folder, "**", f"*.{ext}"), recursive=True))
+
+    all_vids_dict = format_MDC_output(all_files, input_folder, "Andrea_S/ROM_Apr22_2024_posetracked")
+
+    
+    return all_vids_dict
+    
 def list_TRI_PD_vids():
     TRI_INPUT_ROOT = r"/home/saboa/mnt/n_drive/AMBIENT/Data_Storage/TRI/videos"
     PD_scores_file = r"/home/saboa/mnt/n_drive/AMBIENT/Andrea_S/OBJ1- TRI Parkinsonism Data/ALL_PD_SCORES_AND_CLINICAL_DATA.xlsx"
@@ -51,6 +65,32 @@ def list_TRI_PD_vids():
             parts = splitall(output_base)
             name = os.path.splitext(parts[-1])[0]
             output_file = os.path.join(*parts[:-3], "TRI_UPDRS",  parts[-2], f"PHALP_{name}.mp4")
+            valid_vids.update({file: output_file})
+            # valid_vids.append(file)
+        else:
+            invalid_vids.append(file)
+    
+    return valid_vids
+
+
+def list_TRI_non_PD_vids():
+    TRI_INPUT_ROOT = r"/home/saboa/mnt/n_drive/AMBIENT/Data_Storage/TRI/videos"
+    PD_scores_file = r"/home/saboa/mnt/n_drive/AMBIENT/Andrea_S/OBJ1- TRI Parkinsonism Data/ALL_PD_SCORES_AND_CLINICAL_DATA.xlsx"
+    df = pd.read_excel(PD_scores_file)
+    df.rename(columns={"AMBIENT ID": "AMBID", "File Number/Title ": "file"}, inplace=True)
+    pd_vids_potential_files = [os.path.join(TRI_INPUT_ROOT, amb, file, "Video.avi") for amb, file in zip(df["AMBID"].to_list(), df["file"].to_list())]
+
+    all_full_vids = glob.glob(os.path.join(TRI_INPUT_ROOT, "**", "*.avi"), recursive=True)
+
+
+    valid_vids = {}
+    invalid_vids = []
+    for file in all_full_vids:
+        if file not in pd_vids_potential_files:
+            output_base = file.replace(TRI_INPUT_ROOT, OUTPUT_FOLDER_HMR2)
+            parts = splitall(output_base)
+            name = os.path.splitext(parts[-1])[0]
+            output_file = os.path.join(*parts[:-3], "TRI_NON_UPDRS",  parts[-2], f"PHALP_{name}.mp4")
             valid_vids.update({file: output_file})
             # valid_vids.append(file)
         else:
@@ -120,7 +160,9 @@ def process_all_vids_dict(input_vids, cfg):
     i = 0
     for vid, out_new_vid in input_vids.items():
         i = i + 1
-        print(i, vid)
+        # if i == 1:
+        #     continue
+        print(i, len(input_vids), vid)
 
         if os.path.exists(out_new_vid):
             ic("skipping", out_new_vid)
@@ -134,20 +176,24 @@ def process_all_vids_dict(input_vids, cfg):
 
 @hydra.main(version_base="1.2", config_name="config")
 def main(cfg: DictConfig) -> Optional[float]:
-        
-    input_vids = list_TRI_PD_vids()
-    mdc_vids = list_MDC_vids()
+    
+    # input_vids = list_TRI_PD_vids()
+    input_vids = list_TRI_non_PD_vids()
+    # mdc_vids = list_MDC_vids()
 
-    input_vids.update(mdc_vids)
+    # input_vids.update(mdc_vids)
 
-    i = 0
-    for key, val in input_vids.items():
-        i = i + 1
-        ic(key, val)
-        if i > 6 :
-            break
+    # input_vids = list_custom_vids(INPUT_FOLDER)
+    ic(input_vids)
+    ic(len(input_vids))
+    # i = 0
+    # for key, val in input_vids.items():
+    #     i = i + 1
+    #     ic(key, val)
+    #     if i > 6 :
+    #         break
 
-    process_all_vids_dict(input_vids, cfg)
+    # process_all_vids_dict(input_vids, cfg)
 
 
 
