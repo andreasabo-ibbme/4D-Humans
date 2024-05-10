@@ -163,8 +163,9 @@ def process_all_vids_dict(input_vids, cfg):
         # if i == 1:
         #     continue
         print(i, len(input_vids), vid)
-
-        if os.path.exists(out_new_vid):
+        pkl_file = os.path.join(os.path.split(out_new_vid)[0], 'results', 'demo_Video.pkl')
+        ic(pkl_file)
+        if os.path.exists(pkl_file):
             ic("skipping", out_new_vid)
             continue
 
@@ -193,7 +194,7 @@ def main(cfg: DictConfig) -> Optional[float]:
     #     if i > 6 :
     #         break
 
-    # process_all_vids_dict(input_vids, cfg)
+    process_all_vids_dict(input_vids, cfg)
 
 
 
