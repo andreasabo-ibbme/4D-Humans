@@ -114,6 +114,7 @@ def format_MDC_output(input_vids, input_folder, output_intermediate_folder):
 
 def list_MDC_vids(vid_type=VID_TYPE.ALL):
     MDC_SPLIT_VID_DIR = r"/home/saboa/mnt/n_drive/AMBIENT/Andrea_S/Fasano_dataset_2021/objective_2/cropped_and_split_vids"
+    MDC_SPLIT_VID_DIR = r"/home/saboa/mnt/n_drive/AMBIENT/Andrea_S/Fasano_dataset_2021/objective_2/cropped_vids_may2024"
     MDC_FULL_VID_DIR = r"/home/saboa/mnt/n_drive/AMBIENT/Data_Storage/MDC/videos"
     
     all_split_vids = glob.glob(os.path.join(MDC_SPLIT_VID_DIR, "*.avi"))
@@ -122,7 +123,7 @@ def list_MDC_vids(vid_type=VID_TYPE.ALL):
 
     # Format the output files
     if vid_type in [VID_TYPE.SPLIT, VID_TYPE.ALL]:
-        all_split_vids_dict = format_MDC_output(all_split_vids, MDC_SPLIT_VID_DIR, "MDC_SPLIT")
+        all_split_vids_dict = format_MDC_output(all_split_vids, MDC_SPLIT_VID_DIR, "MDC_SPLIT_NON_CROPPED")
     if vid_type in [VID_TYPE.FULL, VID_TYPE.ALL]:
         all_full_vids_dict = format_MDC_output(all_full_vids, MDC_FULL_VID_DIR, "MDC_FULL")
 
@@ -163,8 +164,9 @@ def process_all_vids_dict(input_vids, cfg):
         # if i == 1:
         #     continue
         print(i, len(input_vids), vid)
-        pkl_file = os.path.join(os.path.split(out_new_vid)[0], 'results', 'demo_Video.pkl')
-        ic(pkl_file)
+        res = "results"
+        out_first, out_file = os.path.split(out_new_vid)
+        pkl_file = os.path.join(out_first, "results", f"demo_{os.path.splitext(out_file)[0][6:]}.pkl")
         if os.path.exists(pkl_file):
             ic("skipping", out_new_vid)
             continue
@@ -177,23 +179,23 @@ def process_all_vids_dict(input_vids, cfg):
 
 @hydra.main(version_base="1.2", config_name="config")
 def main(cfg: DictConfig) -> Optional[float]:
-    
+    input_vids = {}
     # input_vids = list_TRI_PD_vids()
-    input_vids = list_TRI_non_PD_vids()
-    # mdc_vids = list_MDC_vids()
+    # input_vids = list_TRI_non_PD_vids()
+    mdc_vids = list_MDC_vids(vid_type=VID_TYPE.SPLIT)
 
-    # input_vids.update(mdc_vids)
+    input_vids.update(mdc_vids)
 
     # input_vids = list_custom_vids(INPUT_FOLDER)
-    ic(input_vids)
-    ic(len(input_vids))
+    # ic(input_vids)
+    # ic(len(input_vids))
     # i = 0
     # for key, val in input_vids.items():
     #     i = i + 1
     #     ic(key, val)
     #     if i > 6 :
     #         break
-
+    # quit()
     process_all_vids_dict(input_vids, cfg)
 
 
